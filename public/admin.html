@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Wallpaper Launcher</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <div>
+        <h1>Wallpaper Launcher</h1>
+        <p class="text-small">Admin Dashboard</p>
+      </div>
+      <button class="btn btn-danger" onclick="logout()">Logout</button>
+    </div>
+
+    <div class="card">
+      <h2>Upload New Wallpaper</h2>
+      <p class="text-small">Select an image and pick the date it should appear on users' phones.</p>
+      
+      <div id="uploadMessage" class="message"></div>
+      
+      <div>
+        <label for="wallpaperDate">Date</label>
+        <input type="date" id="wallpaperDate">
+        
+        <label>Wallpaper Image</label>
+        <div class="file-upload">
+          <input type="file" id="wallpaperImage" accept="image/*" onchange="showFileName()">
+          <div class="file-upload-label" id="fileLabel">
+            <span style="font-size: 2rem;">📁</span>
+            <p>Click to choose an image</p>
+            <p class="text-small" id="fileNameText">JPG, PNG up to 10MB</p>
+          </div>
+        </div>
+        
+        <button class="btn btn-primary" onclick="uploadWallpaper()">Upload Wallpaper</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Scheduled Wallpapers</h2>
+      <p class="text-small">These wallpapers will appear on users' phones on their scheduled dates.</p>
+      
+      <div id="loadingSpinner" class="spinner"></div>
+      
+      <div id="wallpaperGrid" class="wallpaper-grid"></div>
+      
+      <div id="emptyState" class="no-wallpaper" style="display: none;">
+        <div class="no-wallpaper-icon">📅</div>
+        <p>No wallpapers scheduled yet.</p>
+        <p class="text-small">Upload your first wallpaper above!</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('adminToken');
+    if (!token) {
+      window.location.href = '/admin-login.html';
+    }
+
+    document.getElementById('wallpaperDate').valueAsDate = new Date();
+
+    function showFileName() {
+      const input = document.getElementById('wallpaperImage');
+      const fileNameText = document.getElementById('fileNameText');
+      if (input.files && input.files[0]) {
+        fileNameText.textContent = 'Selected: ' + input.files[0].name;
+      }
+    }
+
+    async function uploadWallpaper() {
+      const dateInput = document.getElementById('wallpaperDate');
+      const imageInput = document.getElementById('wallpaperImage');
+      const messageBox = document.getElementById('uploadMessage');
+      
+      const date = dateInput.value;
+      const file = imageInput.files[0];
+      
+      if (!date) {
+        showUploadMessage('Please select a date', 'error');
+        return;
+      }
+      
+      if (!file) {
+        showUploadMessage('Please select an image', 'error');
+        return;
+      }
+      
+      const formData = new FormData();
+      formData.append('date', date);
+      formData.append('image', file);
+      
+      try {
+        const btn = document.querySelector('.btn-primary');
+        btn.textContent = 'Uploading...';
+        btn.disabled = true;
+        
+        const response = await fetch('/api/wallpapers', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + token
+          },
+          body: formData
+        });
+        
+        const data = await response.json();
+        
+        btn.textContent = 'Upload Wallpaper';
+        btn.disabled = false;
+        
+        if (response.ok) {
+          showUploadMessage('Wallpaper uploaded successfully!', 'success');
+          imageInput.value = '';
+          document.getElementById('fileNameText').textContent = 'JPG, PNG up to 10MB';
+          loadWallpapers();
+        } else {
+          showUploadMessage(data.message || 'Upload failed', 'error');
+        }
+      } catch (error) {
+        showUploadMessage('Connection error. Please try again.', 'error');
+        console.error('Upload error:', error);
+      }
+    }
+
+    async function loadWallpapers() {
+      const grid = document.getElementById('wallpaperGrid');
+      const spinner = document.getElementById('loadingSpinner');
+      const emptyState = document.getElementById('emptyState');
+      
+      spinner.style.display = 'block';
+      grid.style.display = 'none';
+      emptyState.style.display = 'none';
+      
+      try {
+        const response = await fetch('/api/wallpapers', {
+          headers: {
+            'Authorization': 'Bearer ' + token
+          }
+        });
+        
+        if (!response.ok) {
+          logout();
+          return;
+        }
+        
+        const wallpapers = await response.json();
+        
+        spinner.style.display = 'none';
+        
+        if (wallpapers.length === 0) {
+          emptyState.style.display = 'block';
+          return;
+        }
+        
+        grid.style.display = 'grid';
+        grid.innerHTML = '';
+        
+        for (const wp of wallpapers) {
+          const item = document.createElement('div');
+          item.className = 'wallpaper-item';
+          
+          const dateObj = new Date(wp.date + 'T00:00:00');
+          const formattedDate = dateObj.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+          });
+          
+          const today = new Date().toISOString().split('T')[0];
+          const isToday = wp.date === today;
+          const todayBadge = isToday ? '<span style="color: #2ecc71; font-size: 0.75rem;">● LIVE TODAY</span>' : '';
+          
+          item.innerHTML = `
+            <img src="/uploads/${wp.filename}" alt="Wallpaper for ${wp.date}" loading="lazy">
+            <div class="wallpaper-info">
+              <div class="wallpaper-date">${formattedDate} ${todayBadge}</div>
+              <div class="wallpaper-name">${wp.originalName}</div>
+              <button class="btn btn-danger" onclick="deleteWallpaper(${wp.id})">Delete</button>
+            </div>
+          `;
+          
+          grid.appendChild(item);
+        }
+      } catch (error) {
+        spinner.style.display = 'none';
+        console.error('Load error:', error);
+      }
+    }
+
+    async function deleteWallpaper(id) {
+      if (!confirm('Are you sure you want to delete this wallpaper?')) {
+        return;
+      }
+      
+      try {
+        const response = await fetch('/api/wallpapers/' + id, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': 'Bearer ' + token
+          }
+        });
+        
+        if (response.ok) {
+          loadWallpapers();
+        } else {
+          alert('Failed to delete wallpaper');
+        }
+      } catch (error) {
+        alert('Connection error');
+        console.error('Delete error:', error);
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('adminToken');
+      window.location.href = '/admin-login.html';
+    }
+
+    function showUploadMessage(text, type) {
+      const messageBox = document.getElementById('uploadMessage');
+      messageBox.textContent = text;
+      messageBox.className = 'message ' + type;
+      
+      setTimeout(() => {
+        messageBox.className = 'message';
+      }, 5000);
+    }
+
+    loadWallpapers();
+  </script>
+</body>
+</html>

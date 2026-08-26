@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1a1a2e">
+  <title>Today's Wallpaper</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .hero-section {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      text-align: center;
+    }
+    .hero-title {
+      font-size: 1.2rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.6);
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    .hero-date {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 30px;
+    }
+    .wallpaper-frame {
+      position: relative;
+      max-width: 400px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    .wallpaper-frame img {
+      width: 100%;
+      border-radius: 20px;
+      box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6);
+      display: block;
+    }
+    .download-btn {
+      margin-top: 30px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .shortcut-info {
+      margin-top: 40px;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
+      max-width: 400px;
+    }
+    .shortcut-info h3 {
+      font-size: 1rem;
+      margin-bottom: 10px;
+    }
+    .shortcut-info p {
+      font-size: 0.85rem;
+      margin-bottom: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="hero-section">
+    <div class="hero-title">Daily Wallpaper</div>
+    <div class="hero-date" id="todayDate">Loading...</div>
+    
+    <div id="loadingSpinner" class="spinner"></div>
+    
+    <div id="wallpaperArea" style="display: none; width: 100%;">
+      <div class="wallpaper-frame">
+        <img id="wallpaperImage" src="" alt="Today's wallpaper">
+      </div>
+      <a id="downloadLink" class="btn btn-primary download-btn" download>
+        <span>⬇️</span>
+        <span>Download Wallpaper</span>
+      </a>
+    </div>
+    
+    <div id="noWallpaperArea" style="display: none;">
+      <div class="no-wallpaper-icon">🌅</div>
+      <h2>No Wallpaper Today</h2>
+      <p>Check back tomorrow for a new wallpaper!</p>
+    </div>
+    
+    <div class="shortcut-info">
+      <h3>📱 iPhone Automation</h3>
+      <p class="text-small">
+        Set up an iOS Shortcut to automatically change your wallpaper every morning. 
+        Ask the admin for the shortcut link!
+      </p>
+    </div>
+  </div>
+
+  <script>
+    function showTodayDate() {
+      const now = new Date();
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      document.getElementById('todayDate').textContent = now.toLocaleDateString('en-US', options);
+    }
+    
+    async function loadTodayWallpaper() {
+      const spinner = document.getElementById('loadingSpinner');
+      const wallpaperArea = document.getElementById('wallpaperArea');
+      const noWallpaperArea = document.getElementById('noWallpaperArea');
+      const wallpaperImage = document.getElementById('wallpaperImage');
+      const downloadLink = document.getElementById('downloadLink');
+      
+      try {
+        const response = await fetch('/api/today');
+        
+        if (response.ok) {
+          const data = await response.json();
+          spinner.style.display = 'none';
+          wallpaperImage.src = data.imageUrl;
+          downloadLink.href = data.imageUrl;
+          downloadLink.download = 'wallpaper-' + data.date + '.jpg';
+          wallpaperArea.style.display = 'block';
+        } else {
+          spinner.style.display = 'none';
+          noWallpaperArea.style.display = 'block';
+        }
+      } catch (error) {
+        spinner.style.display = 'none';
+        noWallpaperArea.style.display = 'block';
+        document.querySelector('#noWallpaperArea h2').textContent = 'Connection Error';
+        document.querySelector('#noWallpaperArea p').textContent = 'Please check your internet connection.';
+        console.error('Load error:', error);
+      }
+    }
+    
+    showTodayDate();
+    loadTodayWallpaper();
+  </script>
+</body>
+</html>

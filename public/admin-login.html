@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login - Wallpaper Launcher</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-logo">
+      <h1>Wallpaper Launcher</h1>
+      <p class="text-small">Admin Dashboard</p>
+    </div>
+
+    <div class="card">
+      <h2>Login</h2>
+      <p>Enter your password to manage wallpapers.</p>
+
+      <div id="message" class="message"></div>
+
+      <div>
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="Enter admin password" autocomplete="current-password">
+
+        <button class="btn btn-primary" onclick="login()">Login</button>
+      </div>
+    </div>
+
+    <p class="text-small" style="text-align: center; margin-top: 20px;">
+      Protected area. Unauthorized access is prohibited.
+    </p>
+  </div>
+
+  <script>
+    async function login() {
+      const passwordInput = document.getElementById('password');
+      const password = passwordInput.value.trim();
+      const messageBox = document.getElementById('message');
+
+      if (!password) {
+        showMessage('Please enter a password', 'error');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ password: password })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          localStorage.setItem('adminToken', data.token);
+          showMessage('Login successful! Redirecting...', 'success');
+          setTimeout(() => {
+            window.location.href = '/admin.html';
+          }, 1000);
+        } else {
+          showMessage('Wrong password. Try again.', 'error');
+        }
+      } catch (error) {
+        showMessage('Connection error. Please try again.', 'error');
+        console.error('Login error:', error);
+      }
+    }
+
+    function showMessage(text, type) {
+      const messageBox = document.getElementById('message');
+      messageBox.textContent = text;
+      messageBox.className = 'message ' + type;
+    }
+
+    document.getElementById('password').addEventListener('keypress', function(event) {
+      if (event.key === 'Enter') {
+        login();
+      }
+    });
+  </script>
+</body>
+</html>
