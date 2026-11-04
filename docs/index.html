@@ -1,0 +1,87 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#1a1a2e">
+
+  <title>Today's Wallpaper</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div class="hero-section">
+
+    <div class="hero-title">Daily Wallpaper</div>
+    <div class="hero-date" id="todayDate">Loading...</div>
+
+    <div id="wallpaperArea" style="width:100%; display:none;">
+      <div class="wallpaper-frame">
+        <img id="wallpaperImage" src="" alt="Today's wallpaper">
+      </div>
+
+      <a id="downloadLink"
+         class="btn btn-primary download-btn"
+         download="wallpaper.jpg">
+        <span>⬇️</span>
+        <span>Download Wallpaper</span>
+      </a>
+    </div>
+
+    <div id="noWallpaperArea" style="display:none;">
+      <div class="no-wallpaper-icon">🌅</div>
+      <h2>No Wallpaper Today</h2>
+      <p>Check back tomorrow for a new wallpaper!</p>
+    </div>
+
+    <div class="shortcut-info">
+      <h3>📱 iPhone Automation</h3>
+      <p class="text-small">
+        Set up an iOS Shortcut to automatically change
+        your wallpaper every morning.
+      </p>
+    </div>
+
+  </div>
+
+  <script>
+    function showTodayDate() {
+      const now = new Date();
+
+      document.getElementById("todayDate").textContent =
+        now.toLocaleDateString("en-US", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric"
+        });
+    }
+
+    function loadWallpaper() {
+      const image = document.getElementById("wallpaperImage");
+      const area = document.getElementById("wallpaperArea");
+      const noWallpaper = document.getElementById("noWallpaperArea");
+      const download = document.getElementById("downloadLink");
+
+      image.onload = function() {
+        area.style.display = "block";
+        noWallpaper.style.display = "none";
+      };
+
+      image.onerror = function() {
+        area.style.display = "none";
+        noWallpaper.style.display = "block";
+      };
+
+      image.src = "wallpapers/today.jpg";
+      download.href = "wallpapers/today.jpg";
+    }
+
+    showTodayDate();
+    loadWallpaper();
+  </script>
+
+</body>
+</html>
